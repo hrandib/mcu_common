@@ -13,7 +13,7 @@ namespace Mcucpp {
 			}
 			return str;
 		}
-namespace Internal
+/*namespace Internal
 {
 		uint8_t* utoa_rev(uint32_t value, uint8_t* ptr, uint32_t base)
 		{
@@ -41,20 +41,19 @@ namespace Internal
 			}
 			return retptr;
 		}
-}
+}*///Internal
 		uint8_t* itoa(int32_t value, uint8_t* result, uint8_t base)
 		{
 			// check that the base if valid
-			if (base < 2 || base > 16) { *result = 0; return result; }
+//			if (base < 2 || base > 16) { *result = 0; return result; }
 
 			uint8_t* out = result;
-			//int quotient = abs(value);
 			uint32_t quotient = value < 0 ? -value : value;
 			do {
-				const int tmp = quotient / base;
-				*out = (tmp < 10 ? '0' : 'a' - 10) + quotient - (tmp*base);
-				++out;
-				quotient = tmp;
+				const uint32_t q = quotient / base;
+				const uint32_t rem = quotient - q * base;
+				quotient = q;
+				*out++ = (rem < 10 ? '0' : 'a' - 10) + rem;
 			} while ( quotient );
 		// Apply negative sign
 			if ( value < 0) *out++ = '-';
@@ -67,7 +66,6 @@ namespace Internal
 				*out-- = *ptr1;
 				*ptr1++ = tmp_char;
 			}
-
 			return result;
 		}
 

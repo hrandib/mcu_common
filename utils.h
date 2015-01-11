@@ -41,7 +41,7 @@
 
 namespace Mcucpp
 {
-	enum class NumSystem
+	enum class DataFormat
 	{
 		Bin8,
 		Bin16,
@@ -62,9 +62,9 @@ namespace Mcucpp
 	{
 		uint8_t* utoa_rev(uint32_t value, uint8_t* ptr, uint32_t base);
 
-		template<NumSystem format>
+		template<DataFormat format>
 		struct UtoaTraits;
-		template<> struct UtoaTraits<NumSystem::Bin8>
+		template<> struct UtoaTraits<DataFormat::Bin8>
 		{
 			enum
 			{
@@ -72,7 +72,7 @@ namespace Mcucpp
 				base = 2
 			};
 		};
-		template<> struct UtoaTraits<NumSystem::Bin16>
+		template<> struct UtoaTraits<DataFormat::Bin16>
 		{
 			enum
 			{
@@ -80,7 +80,7 @@ namespace Mcucpp
 				base = 2
 			};
 		};
-		template<> struct UtoaTraits<NumSystem::Bin32>
+		template<> struct UtoaTraits<DataFormat::Bin32>
 		{
 			enum
 			{
@@ -88,7 +88,7 @@ namespace Mcucpp
 				base = 2
 			};
 		};
-		template<> struct UtoaTraits<NumSystem::Hex8>
+		template<> struct UtoaTraits<DataFormat::Hex8>
 		{
 			enum
 			{
@@ -96,7 +96,7 @@ namespace Mcucpp
 				base = 16
 			};
 		};
-		template<> struct UtoaTraits<NumSystem::Hex16>
+		template<> struct UtoaTraits<DataFormat::Hex16>
 		{
 			enum
 			{
@@ -104,7 +104,7 @@ namespace Mcucpp
 				base = 16
 			};
 		};
-		template<> struct UtoaTraits<NumSystem::Hex32>
+		template<> struct UtoaTraits<DataFormat::Hex32>
 		{
 			enum
 			{
@@ -112,7 +112,7 @@ namespace Mcucpp
 				base = 16
 			};
 		};
-		template<> struct UtoaTraits<NumSystem::Dec>
+		template<> struct UtoaTraits<DataFormat::Dec>
 		{
 			enum
 			{
@@ -133,5 +133,6 @@ namespace Mcucpp
 		enum{ value = 0 };
 	};
 
-}
+	uint32_t Populate(uint8_t x);
+}//Mcucpp
 #endif

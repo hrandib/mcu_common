@@ -9,7 +9,7 @@ namespace Mcucpp {
 
 		uint8_t* to_lower(uint8_t* str);
 
-		uint8_t* utoa(uint32_t value, uint8_t* ptr, uint8_t base = 10);	//ptr points to the end of buf
+		uint8_t* utoa(uint32_t value, uint8_t* bufferEnd, uint8_t base = 10);	//ptr points to the end of buf
 		uint8_t* itoa(int32_t value, uint8_t* result, uint8_t base = 10);
 		template<typename T>
 		inline T* itoa(int32_t value, T* result, uint8_t base = 10)
@@ -224,9 +224,7 @@ namespace Mcucpp {
 			uint8_t* utoa(uint32_t value, uint8_t* ptr, uint32_t base = 10);
 		}
 
-
 	}//IO
-	using IO::Internal::utoa;
 }//Mcucpp
 
 
