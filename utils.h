@@ -27,8 +27,11 @@
 	#else
 		#define STATIC_ASSERT(expr) typedef char CONCAT(static_assert_failed_at_line_, __LINE__) [(expr) ? 1 : -1]
 	#endif
-
+#ifdef __GNUC__
 #define FORCEINLINE [[gnu::always_inline]]
+#elif __ICCARM__
+#define FORCEINLINE _Pragma("inline=forced")
+#endif
 //Create IRQ function after class template specialization
 #define DECLAREIRQ(class, irqname)	extern "C" void irqname##_IRQHandler() { class::Irq(); }
 
