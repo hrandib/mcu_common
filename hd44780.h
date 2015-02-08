@@ -112,6 +112,13 @@ namespace Mcucpp {
 			delay_ms<50>();
 			InitDisplay(mode);
 		}
+		static void PrepareToShutdown()
+		{
+			Databus::Write(0);
+			Rs::Clear();
+			E::Clear();
+		}
+
 		static void SetPosition(uint8_t x, uint8_t y)
 		{
 			WriteCommand(DDRAM_ADDR | (y ? NEXT_LINE : 0) | x);
