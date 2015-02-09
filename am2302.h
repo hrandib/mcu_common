@@ -17,7 +17,7 @@ namespace Sensors
 		Timeout
 	} state;
 
-	template<typename Pin>
+	template<typename Timer, typename Pin>
 	class Am2302
 	{
 	private:
@@ -81,7 +81,6 @@ namespace Sensors
 		}
 		static uint8_t valueArray[4];
 	public:
-		typedef Tim2 HardTimer;
 		FORCEINLINE
 		static void Init()
 		{
@@ -143,24 +142,15 @@ namespace Sensors
  		}
 	};
 
-	template<typename Pin>
-	uint8_t Am2302<Pin>::valueArray[];
-	template<typename Pin>
-	uint8_t Am2302<Pin>::bitcount;
-	template<typename Pin>
-	uint8_t Am2302<Pin>::index;
- 	template<typename Pin>
-	uint8_t Am2302<Pin>::value;
+	template<typename Timer, typename Pin>
+	uint8_t Am2302<Timer, Pin>::valueArray[];
+	template<typename Timer, typename Pin>
+	uint8_t Am2302<Timer, Pin>::bitcount;
+	template<typename Timer, typename Pin>
+	uint8_t Am2302<Timer, Pin>::index;
+	template<typename Timer, typename Pin>
+	uint8_t Am2302<Timer, Pin>::value;
 
-//	INTERRUPT_HANDLER(EXTI_PORTD_IRQHandler, 6)
-//	{
-//		Dht22<>::ExtInt();
-//	}
-
-//	INTERRUPT_HANDLER(TIM4_UPD_OVF_IRQHandler, 23)
-//	 {
-//		 Dht22<>::TimerInt();
-//	 }
-}//Dht22
-}//Mcudrv
+}//AM2302
+}//Mcucpp
 
