@@ -4,6 +4,7 @@
 #include "timers.h"
 #include "utils.h"
 #include <stdint.h>
+#include <limits>
 
 namespace Mcucpp
 {
@@ -22,7 +23,7 @@ namespace Sensors
 	{
 	private:
 		enum {
-			PollPeriod = 5000,	//ms
+			PollPeriod = 10000,	//ms
 			TimerStep = 4,		//us
 			ResponseTimeMin = 72 / TimerStep,
 			ResponseTimeMax = 84 / TimerStep,
@@ -33,8 +34,8 @@ namespace Sensors
 		static void DetectResponse()
 		{
 			static uint8_t stagecount;
-			uint8_t timer = HardTimer::ReadCounter();
-			HardTimer::Clear();
+			uint8_t timer = Timer::ReadCounter();
+			Timer::Clear();
 			switch (stagecount)
 			{
 				case 0: case 1: ++stagecount;
@@ -56,8 +57,8 @@ namespace Sensors
 		FORCEINLINE
 		static void ReadingProcess()
 		{
-			uint8_t timer = HardTimer::ReadCounter();
-			HardTimer::Clear();
+			uint8_t timer = Timer::ReadCounter();
+			Timer::Clear();
  			if (!Pin::IsSet())
 			{
 				value <<= 1;
@@ -84,13 +85,15 @@ namespace Sensors
 		FORCEINLINE
 		static void Init()
 		{
-			Exti::SetExtIntMode<Pin::Port, Exti::RisingFallingEdge>();
-//			Pin::template SetConfig<GpioBase::In_Pullup_int>();
-			HardTimer::Init<T4::Div8, T4::ARPE>();			//clock 4us
-			HardTimer::EnableInterrupt();
-			HardTimer::Enable();
+			using namespace Gpio;
+			Pin::Exti::EnableIRQ(Trigger::BothEdges);
+			Pin::template SetConfig<Input, PullUp>();
+			using namespace Timers;
+			Timer:: template Init<UpCount, (F_CPU * TimerStep) / 1000000UL, 512>(); //step 4us, cycle 2ms
+			Timer::EnableIRQ(UpdateIRQ);
+			Timer::Enable();
 			Pin::Clear();
-			Pin::template SetConfig<GpioBase::Out_OpenDrain_fast>();
+			Pin::template SetConfig<Gpio::OutputFast, Gpio::OpenDrain>();
 			state = Start;
 		}
 		
@@ -104,14 +107,15 @@ namespace Sensors
 		static void DeInit()
 		{
 			state = Start;
-			HardTimer::Disable();
-			HardTimer::DisableInterrupt();
-			Pin::template SetConfig<GpioBase::In_Pullup>();
+			Timer::Disable();
+			Timer::DisableIRQ(Timers::UpdateIRQ);
+			Pin::template SetConfig<Gpio::Input, Gpio::PullUp>();
 		}
 
 		FORCEINLINE
-		static void ExtInt()
+		static void ExtiIRQ()
 		{
+			Pin::Exti::ClearPending();
 			switch (state)
 			{
 			case GetResponse: DetectResponse();
@@ -124,18 +128,19 @@ namespace Sensors
 		}
 
 		FORCEINLINE
-		static void TimerInt()
+		static void TimerIRQ()
 		{
-			HardTimer::ClearIntFlag();
+			using namespace Timers;
+			Timer::ClearEvent(UpdateEv);
 			static uint16_t timeout;
 			if (state == Start)
 			{
-				Pin::template SetConfig<GpioBase::In_Pullup_int>();
+				Pin::template SetConfig<Gpio::Input, Gpio::PullUp>();
 				state = GetResponse;
 			}
-			else if (timeout++ == PollPeriod)
+			else if (timeout++ == PollPeriod / 2)
 			{
-				Pin::template SetConfig<GpioBase::Out_OpenDrain_fast>();
+				Pin::template SetConfig<Gpio::OutputFast, Gpio::OpenDrain>();
 				timeout = 0;
 				state = Start;
  			}
