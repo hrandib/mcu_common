@@ -104,7 +104,7 @@ namespace Mcucpp {
 			enum
 			{
 				offset = First::position,
-				mask = Private::NumberToMask<SequenceOf<Seq>::value>::value << offset
+				mask = Private::NumberToMask<Seq>::value << offset
 			};
 			using Port = typename First::Port;
 			static uint16_t ReadODR()
@@ -117,7 +117,7 @@ namespace Mcucpp {
 			}
 			static void Write(uint16_t value)
 			{
-				value <<= offset;
+				value = (value << offset) & mask;
 				Port::ClearAndSet(~value & mask, value);
 			}
 			template<OutputConf conf, OutputMode mode>

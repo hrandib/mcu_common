@@ -10,18 +10,18 @@ namespace Mcucpp
 {
 namespace Sensors
 {
-	enum
-	{
-		Start,
-		GetResponse,
-		Reading,
-		Timeout
-	} state;
 
 	template<typename Timer, typename Pin>
 	class Am2302
 	{
 	private:
+		static enum State
+		{
+			Start,
+			GetResponse,
+			Reading,
+			Timeout
+		} state;
 		enum {
 			PollPeriod = 10000,	//ms
 			TimerStep = 4,		//us
@@ -68,16 +68,16 @@ namespace Sensors
 			if (bitcount >= 8)
 			{
 				bitcount = 0;
-				if (index == 4)
+				if (index == 0)
 				{
 					uint8_t sum = valueArray[0] + valueArray[1] + valueArray[2] + valueArray[3];
 					if (sum != value)
 						valueArray[0] = valueArray[1] = valueArray[2] = valueArray[3] = 0;
 					else
 						state = Timeout;
-						index = 0;
+						index = 4;
 				}
-				else valueArray[index++] = value;
+				else valueArray[--index] = value;
 			}
 		}
 		static uint8_t valueArray[4];
@@ -96,13 +96,11 @@ namespace Sensors
 			Pin::template SetConfig<Gpio::OutputFast, Gpio::OpenDrain>();
 			state = Start;
 		}
-		
 		FORCEINLINE
 		static const uint8_t* GetValues()
 		{
 			return valueArray;
 		}
-
 		FORCEINLINE
 		static void DeInit()
 		{
@@ -111,7 +109,6 @@ namespace Sensors
 			Timer::DisableIRQ(Timers::UpdateIRQ);
 			Pin::template SetConfig<Gpio::Input, Gpio::PullUp>();
 		}
-
 		FORCEINLINE
 		static void ExtiIRQ()
 		{
@@ -126,7 +123,6 @@ namespace Sensors
 				break;
 			}
 		}
-
 		FORCEINLINE
 		static void TimerIRQ()
 		{
@@ -155,6 +151,8 @@ namespace Sensors
 	uint8_t Am2302<Timer, Pin>::index;
 	template<typename Timer, typename Pin>
 	uint8_t Am2302<Timer, Pin>::value;
+	template<typename Timer, typename Pin>
+	typename Am2302<Timer, Pin>::State Am2302<Timer, Pin>::state;
 
 }//AM2302
 }//Mcucpp
