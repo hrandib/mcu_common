@@ -6,6 +6,9 @@
 #include <stdint.h>
 #include <limits>
 
+
+bool _fail_ = false;
+
 namespace Mcucpp
 {
 namespace Sensors
@@ -23,13 +26,14 @@ namespace Sensors
 			Timeout
 		} state;
 		enum {
-			PollPeriod = 10000,	//ms
+			PollPeriod = 2500,	//ms
 			TimerStep = 4,		//us
 			ResponseTimeMin = 72 / TimerStep,
 			ResponseTimeMax = 84 / TimerStep,
 			Threshold = 50 / TimerStep,
 		};  
-		static uint8_t index, bitcount, value;
+		static uint8_t bitcount_, csum_;
+		static uint32_t value_;
 		FORCEINLINE
 		static void DetectResponse()
 		{
@@ -46,7 +50,7 @@ namespace Sensors
 					else if (stagecount == 3)
 					{
 						stagecount = 0;
-						index = bitcount = value = 0;
+						bitcount_ = value_ = 0;
 						state = Reading;
 					}
 				}
@@ -61,27 +65,41 @@ namespace Sensors
 			Timer::Clear();
  			if (!Pin::IsSet())
 			{
-				value <<= 1;
-				if (timer > Threshold) value |= 0x01;
-				bitcount++;
-			}
-			if (bitcount >= 8)
-			{
-				bitcount = 0;
-				if (index == 0)
+				if(bitcount_ < 32)
 				{
-					uint8_t sum = valueArray[0] + valueArray[1] + valueArray[2] + valueArray[3];
-					if (sum != value)
-						valueArray[0] = valueArray[1] = valueArray[2] = valueArray[3] = 0;
-					else
-						state = Timeout;
-						index = 4;
+					value_ <<= 1;
+					if(timer > Threshold) value_ |= 0x01;
 				}
-				else valueArray[--index] = value;
+				else
+				{
+					csum_ <<= 1;
+					if(timer > Threshold) csum_ |= 0x01;
+				}
+				bitcount_++;
+			}
+			if (bitcount_ >= 40)
+			{
+				bitcount_ = 0;
+				uint8_t sum = (value_ & 0xFF) + (value_ >> 8 & 0xFF) + (value_ >> 16 & 0xFF) + (value_ >> 24 & 0xFF);
+				if (sum != csum_)
+				{
+					_fail_ = true;
+					value_ = 0;
+				}
+				state = Timeout;
 			}
 		}
-		static uint8_t valueArray[4];
 	public:
+		static bool IsFail()
+		{
+			if(_fail_)
+			{
+				_fail_ = false;
+				return true;
+			}
+			else return false;
+		}
+
 		FORCEINLINE
 		static void Init()
 		{
@@ -97,9 +115,9 @@ namespace Sensors
 			state = Start;
 		}
 		FORCEINLINE
-		static const uint8_t* GetValues()
+		static uint32_t GetValues()
 		{
-			return valueArray;
+			return value_;
 		}
 		FORCEINLINE
 		static void DeInit()
@@ -144,13 +162,11 @@ namespace Sensors
 	};
 
 	template<typename Timer, typename Pin>
-	uint8_t Am2302<Timer, Pin>::valueArray[];
+	uint8_t Am2302<Timer, Pin>::bitcount_;
 	template<typename Timer, typename Pin>
-	uint8_t Am2302<Timer, Pin>::bitcount;
+	uint8_t Am2302<Timer, Pin>::csum_;
 	template<typename Timer, typename Pin>
-	uint8_t Am2302<Timer, Pin>::index;
-	template<typename Timer, typename Pin>
-	uint8_t Am2302<Timer, Pin>::value;
+	uint32_t Am2302<Timer, Pin>::value_;
 	template<typename Timer, typename Pin>
 	typename Am2302<Timer, Pin>::State Am2302<Timer, Pin>::state;
 
