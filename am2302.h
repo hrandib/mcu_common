@@ -7,8 +7,6 @@
 #include <stdint.h>
 #include <limits>
 
-bool _fail_ = false;
-
 namespace Mcucpp
 {
 
@@ -82,7 +80,6 @@ namespace Sensors
 				uint8_t sum = (value_ & 0xFF) + (value_ >> 8 & 0xFF) + (value_ >> 16 & 0xFF) + (value_ >> 24 & 0xFF);
 				if (sum != csum_)
 				{
-					_fail_ = true;
 					value_ = 0;
 				}
 				else Led2::Clear();
@@ -109,20 +106,10 @@ namespace Sensors
 			}
 			else return false;
 		}
-		static bool IsFail()
-		{
-			if(_fail_)
-			{
-				_fail_ = false;
-				return true;
-			}
-			else return false;
-		}
 		FORCEINLINE
 		static void Init()
 		{
 			using namespace Gpio;
-			Pin::template SetConfig<Input, PullUp>();
 			using namespace Timers;
 			Timer:: template Init<UpCount, (F_CPU * TimerStep) / 1000000UL, 512>(); //step 4us, cycle 2ms
 			Timer::EnableIRQ(UpdateIRQ);
@@ -166,7 +153,6 @@ namespace Sensors
 			}
 			else if (timeout++ == PollPeriod / 2)
 			{
-				if(state != Timeout) _fail_ = true;
 				Pin::template SetConfig<Gpio::OutputFast, Gpio::OpenDrain>();
 				timeout = 0;
 				state = Start;
