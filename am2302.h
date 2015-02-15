@@ -1,3 +1,4 @@
+// timer IRQ priority must be lower than EXTI IRQ priority.
 #pragma once
 #include "gpio.h"
 #include "delay.h"
@@ -6,14 +7,12 @@
 #include <stdint.h>
 #include <limits>
 
-
 bool _fail_ = false;
 
 namespace Mcucpp
 {
 namespace Sensors
 {
-
 	template<typename Timer, typename Pin>
 	class Am2302
 	{
@@ -28,8 +27,8 @@ namespace Sensors
 		enum {
 			PollPeriod = 2500,	//ms
 			TimerStep = 4,		//us
-			ResponseTimeMin = 72 / TimerStep,
-			ResponseTimeMax = 84 / TimerStep,
+			ResponseTimeMin = 40 / TimerStep,		//Real sensor timings not conform to datasheet
+			ResponseTimeMax = 100 / TimerStep,
 			Threshold = 50 / TimerStep,
 		};  
 		static uint8_t bitcount_, csum_;
@@ -38,13 +37,14 @@ namespace Sensors
 		static void DetectResponse()
 		{
 			static uint8_t stagecount;
-			uint8_t timer = Timer::ReadCounter();
+			Led1::Set();
+			uint8_t rtime = Timer::ReadCounter();
 			Timer::Clear();
 			switch (stagecount)
 			{
 				case 0: case 1: ++stagecount;
 					break;
-				case 2: case 3: if (timer >= ResponseTimeMin && timer <= ResponseTimeMax)
+				case 2: case 3: if (rtime >= ResponseTimeMin && rtime <= ResponseTimeMax)
 				{
 					if (Pin::IsSet()) ++stagecount;
 					else if (stagecount == 3)
@@ -52,6 +52,7 @@ namespace Sensors
 						stagecount = 0;
 						bitcount_ = value_ = 0;
 						state = Reading;
+						Led1::Clear();
 					}
 				}
 				else stagecount = 0;
@@ -61,19 +62,20 @@ namespace Sensors
 		FORCEINLINE
 		static void ReadingProcess()
 		{
-			uint8_t timer = Timer::ReadCounter();
+			Led2::Set();
+			uint8_t rtime = Timer::ReadCounter();
 			Timer::Clear();
  			if (!Pin::IsSet())
 			{
 				if(bitcount_ < 32)
 				{
 					value_ <<= 1;
-					if(timer > Threshold) value_ |= 0x01;
+					if(rtime > Threshold) value_ |= 0x01;
 				}
 				else
 				{
 					csum_ <<= 1;
-					if(timer > Threshold) csum_ |= 0x01;
+					if(rtime > Threshold) csum_ |= 0x01;
 				}
 				bitcount_++;
 			}
@@ -86,6 +88,7 @@ namespace Sensors
 					_fail_ = true;
 					value_ = 0;
 				}
+				else Led2::Clear();
 				state = Timeout;
 			}
 		}
@@ -99,7 +102,6 @@ namespace Sensors
 			}
 			else return false;
 		}
-
 		FORCEINLINE
 		static void Init()
 		{
@@ -149,11 +151,12 @@ namespace Sensors
 			static uint16_t timeout;
 			if (state == Start)
 			{
-				Pin::template SetConfig<Gpio::Input, Gpio::PullUp>();
 				state = GetResponse;
+				Pin::template SetConfig<Gpio::Input, Gpio::PullUp>();
 			}
 			else if (timeout++ == PollPeriod / 2)
 			{
+				if(state != Timeout) _fail_ = true;
 				Pin::template SetConfig<Gpio::OutputFast, Gpio::OpenDrain>();
 				timeout = 0;
 				state = Start;
