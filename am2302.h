@@ -11,9 +11,10 @@ bool _fail_ = false;
 
 namespace Mcucpp
 {
+
 namespace Sensors
 {
-	template<typename Timer, typename Pin>
+	template<typename Timer, typename Pin, uint32_t PollingPeriod = 3>
 	class Am2302
 	{
 	private:
@@ -25,7 +26,7 @@ namespace Sensors
 			Timeout
 		} state;
 		enum {
-			PollPeriod = 2500,	//ms
+			PollPeriod = PollingPeriod * 1000,	//ms
 			TimerStep = 4,		//us
 			ResponseTimeMin = 40 / TimerStep,		//Real sensor timings not conform to datasheet
 			ResponseTimeMax = 100 / TimerStep,
@@ -33,6 +34,7 @@ namespace Sensors
 		};  
 		static uint8_t bitcount_, csum_;
 		static uint32_t value_;
+		static volatile bool dataReady_;
 		FORCEINLINE
 		static void DetectResponse()
 		{
@@ -40,24 +42,19 @@ namespace Sensors
 			Led1::Set();
 			uint8_t rtime = Timer::ReadCounter();
 			Timer::Clear();
-			switch (stagecount)
+			if(stagecount < 2) ++stagecount;
+			else if (rtime >= ResponseTimeMin && rtime <= ResponseTimeMax)
 			{
-				case 0: case 1: ++stagecount;
-					break;
-				case 2: case 3: if (rtime >= ResponseTimeMin && rtime <= ResponseTimeMax)
+				if (Pin::IsSet()) ++stagecount;
+				else if (stagecount == 3)
 				{
-					if (Pin::IsSet()) ++stagecount;
-					else if (stagecount == 3)
-					{
-						stagecount = 0;
-						bitcount_ = value_ = 0;
-						state = Reading;
-						Led1::Clear();
-					}
+					stagecount = 0;
+					bitcount_ = value_ = 0;
+					state = Reading;
+					Led1::Clear();
 				}
-				else stagecount = 0;
-					break;
 			}
+			else stagecount = 0;
 		}
 		FORCEINLINE
 		static void ReadingProcess()
@@ -89,10 +86,29 @@ namespace Sensors
 					value_ = 0;
 				}
 				else Led2::Clear();
+				dataReady_ = true;
 				state = Timeout;
 			}
 		}
 	public:
+		union HT
+		{
+			uint32_t value;
+			struct
+			{
+				uint16_t Temperature;
+				uint16_t Humidity;
+			};
+		};
+		static bool IsDataReady()
+		{
+			if(dataReady_)
+			{
+				dataReady_ = false;
+				return true;
+			}
+			else return false;
+		}
 		static bool IsFail()
 		{
 			if(_fail_)
@@ -106,7 +122,6 @@ namespace Sensors
 		static void Init()
 		{
 			using namespace Gpio;
-			Pin::Exti::EnableIRQ(Trigger::BothEdges);
 			Pin::template SetConfig<Input, PullUp>();
 			using namespace Timers;
 			Timer:: template Init<UpCount, (F_CPU * TimerStep) / 1000000UL, 512>(); //step 4us, cycle 2ms
@@ -114,12 +129,14 @@ namespace Sensors
 			Timer::Enable();
 			Pin::Clear();
 			Pin::template SetConfig<Gpio::OutputFast, Gpio::OpenDrain>();
+			Pin::Exti::EnableIRQ(Trigger::BothEdges);
 			state = Start;
+			Pin::Exti::ClearPending();
 		}
 		FORCEINLINE
-		static uint32_t GetValues()
+		static HT GetValues()
 		{
-			return value_;
+			return HT{value_};
 		}
 		FORCEINLINE
 		static void DeInit()
@@ -133,15 +150,8 @@ namespace Sensors
 		static void ExtiIRQ()
 		{
 			Pin::Exti::ClearPending();
-			switch (state)
-			{
-			case GetResponse: DetectResponse();
-				break;
-			case Reading: ReadingProcess();
-				break;
-			default:
-				break;
-			}
+			if(state == GetResponse) DetectResponse();
+			else if(state == Reading) ReadingProcess();
 		}
 		FORCEINLINE
 		static void TimerIRQ()
@@ -164,14 +174,16 @@ namespace Sensors
  		}
 	};
 
-	template<typename Timer, typename Pin>
-	uint8_t Am2302<Timer, Pin>::bitcount_;
-	template<typename Timer, typename Pin>
-	uint8_t Am2302<Timer, Pin>::csum_;
-	template<typename Timer, typename Pin>
-	uint32_t Am2302<Timer, Pin>::value_;
-	template<typename Timer, typename Pin>
-	typename Am2302<Timer, Pin>::State Am2302<Timer, Pin>::state;
+	template<typename Timer, typename Pin, uint32_t PollingPeriod>
+	uint8_t Am2302<Timer, Pin, PollingPeriod>::bitcount_;
+	template<typename Timer, typename Pin, uint32_t PollingPeriod>
+	volatile bool Am2302<Timer, Pin, PollingPeriod>::dataReady_;
+	template<typename Timer, typename Pin, uint32_t PollingPeriod>
+	uint8_t Am2302<Timer, Pin, PollingPeriod>::csum_;
+	template<typename Timer, typename Pin, uint32_t PollingPeriod>
+	uint32_t Am2302<Timer, Pin, PollingPeriod>::value_;
+	template<typename Timer, typename Pin, uint32_t PollingPeriod>
+	typename Am2302<Timer, Pin, PollingPeriod>::State Am2302<Timer, Pin, PollingPeriod>::state;
 
 }//AM2302
 }//Mcucpp
