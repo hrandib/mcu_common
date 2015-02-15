@@ -32,12 +32,11 @@ namespace Sensors
 		};  
 		static uint8_t bitcount_, csum_;
 		static uint32_t value_;
-		static volatile bool dataReady_;
+		static volatile bool samplingPassed_;
 		FORCEINLINE
 		static void DetectResponse()
 		{
 			static uint8_t stagecount;
-			Led1::Set();
 			uint8_t rtime = Timer::ReadCounter();
 			Timer::Clear();
 			if(stagecount < 2) ++stagecount;
@@ -49,15 +48,17 @@ namespace Sensors
 					stagecount = 0;
 					bitcount_ = value_ = 0;
 					state = Reading;
-					Led1::Clear();
 				}
 			}
-			else stagecount = 0;
+			else
+			{
+				state = Timeout;
+				stagecount = 0;
+			}
 		}
 		FORCEINLINE
 		static void ReadingProcess()
 		{
-			Led2::Set();
 			uint8_t rtime = Timer::ReadCounter();
 			Timer::Clear();
  			if (!Pin::IsSet())
@@ -82,8 +83,6 @@ namespace Sensors
 				{
 					value_ = 0;
 				}
-				else Led2::Clear();
-				dataReady_ = true;
 				state = Timeout;
 			}
 		}
@@ -99,9 +98,9 @@ namespace Sensors
 		};
 		static bool IsDataReady()
 		{
-			if(dataReady_)
+			if(samplingPassed_)
 			{
-				dataReady_ = false;
+				samplingPassed_ = false;
 				return true;
 			}
 			else return false;
@@ -157,13 +156,14 @@ namespace Sensors
 				timeout = 0;
 				state = Start;
  			}
+			if(timeout == 2) samplingPassed_ = true;
  		}
 	};
 
 	template<typename Timer, typename Pin, uint32_t PollingPeriod>
 	uint8_t Am2302<Timer, Pin, PollingPeriod>::bitcount_;
 	template<typename Timer, typename Pin, uint32_t PollingPeriod>
-	volatile bool Am2302<Timer, Pin, PollingPeriod>::dataReady_;
+	volatile bool Am2302<Timer, Pin, PollingPeriod>::samplingPassed_;
 	template<typename Timer, typename Pin, uint32_t PollingPeriod>
 	uint8_t Am2302<Timer, Pin, PollingPeriod>::csum_;
 	template<typename Timer, typename Pin, uint32_t PollingPeriod>
