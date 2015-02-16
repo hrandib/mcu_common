@@ -1,8 +1,9 @@
 #include "streams.h"
 #include <algorithm>
+#include <string.h>
 
 namespace Mcucpp {
-	namespace IO {
+	namespace Io {
 
 		uint8_t* to_lower(uint8_t* str)
 		{
@@ -80,6 +81,28 @@ namespace Mcucpp {
 					*--ptr = (rem < 10 ? '0' : 'a' - 10) + rem;
 				} while (value != 0);
 				return ptr;
+		}
+
+		uint8_t* InsertDot(uint32_t value, uint8_t position, uint8_t* buf)
+		{
+			auto len = strlen((const char*)Io::itoa(value, buf));
+			if(len <= position)
+			{
+				const uint8_t offset = position + 2 - len;
+				memmove(buf + offset, buf, len + 1);
+				buf[0] = '0';
+				buf[1] = '.';
+				for(uint8_t x = 2; x < offset; ++x)
+				{
+					buf[x] = '0';
+				}
+			}
+			else	//length > position
+			{
+				memmove(buf + len - position + 1, buf + len - position, position + 1);
+				buf[len - position] = '.';
+			}
+			return buf;
 		}
 	}//IO
 }//Mcucpp

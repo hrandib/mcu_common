@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <stdint.h>
 namespace Mcucpp {
-	namespace IO {
+	namespace Io {
 
 		uint8_t* to_lower(uint8_t* str);
 
@@ -18,6 +18,7 @@ namespace Mcucpp {
 			return (T*)itoa(value, (char*)result, base);
 		}
 
+		uint8_t* InsertDot(uint32_t value, uint8_t position, uint8_t* buf);
 
 		enum class System
 		{
