@@ -156,7 +156,11 @@ namespace Sensors
 				timeout = 0;
 				state = Start;
  			}
-			if(timeout == 2) samplingPassed_ = true;
+			if(timeout == 2)
+			{
+				samplingPassed_ = true;
+				if(state != Timeout) value_ = 0;
+			}
  		}
 	};
 

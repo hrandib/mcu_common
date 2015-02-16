@@ -112,6 +112,14 @@ namespace Mcucpp {
 			delay_ms<50>();
 			InitDisplay(mode);
 		}
+		static void BuildCustomChar(uint8_t location, const uint8_t* ptr)
+		{
+			WriteCommand(0x40 + (location * 8));
+			for(uint8_t i = 0; i < 8; ++i)
+			{
+				WriteData(ptr[i]);
+			}
+		}
 		static void PrepareToShutdown()
 		{
 			Databus::Write(0);

@@ -1,6 +1,6 @@
 #include "streams.h"
 #include <algorithm>
-#include <string.h>
+#include <cstring>
 
 namespace Mcucpp {
 	namespace Io {
